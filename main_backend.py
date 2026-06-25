@@ -54,7 +54,7 @@ def upload_and_process_material(file_path: str, user_id: str, grade_level: int) 
     except Exception as e:
         return {"success": False, "message": str(e)}
 
-def ask_study_companion(user_id: str, query: str) -> Dict[str, Any]:
+def ask_study_companion(user_id: str, query: str, search_online: bool = False) -> Dict[str, Any]:
     try:
         profile = db.get_user_profile(user_id)
         if not profile:
@@ -65,6 +65,11 @@ def ask_study_companion(user_id: str, query: str) -> Dict[str, Any]:
         preferences = profile.get('preferences', {})
         
         context = rag.retrieve_context(user_id, grade_level, query, n_results=3)
+        
+        if search_online:
+            web_context = web_search(query)
+            if web_context:
+                context += "\n\n--- ONLINE LIVE SEARCH KNOWLEDGE ---\n" + web_context
         
         response_data = ai.generate_adaptive_content(
             topic=query,
@@ -78,6 +83,104 @@ def ask_study_companion(user_id: str, query: str) -> Dict[str, Any]:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+def web_search(query: str) -> str:
+    """DuckDuckGo HTML search crawler to perform live online research (no API key needed)."""
+    import requests
+    import re
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(query)}"
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            results = re.findall(r'<a class="result__snippet" href=".*?">(.*?)</a>', r.text)
+            if results:
+                cleaned = []
+                for res in results[:3]:
+                    text = re.sub(r'<[^>]*>', '', res).strip()
+                    cleaned.append(text)
+                return "\n".join([f"- {c}" for c in cleaned])
+    except Exception as e:
+        print(f"  [Warning] Web search failed: {e}")
+    return ""
+
+def generate_reviewer_deck(
+    user_id: str,
+    deck_name: str,
+    subject: str,
+    grade_level: int,
+    selected_files: List[str],
+    total_questions: int,
+    sample_format_file: str = None
+) -> Dict[str, Any]:
+    """Combines study modules, extracts text, generates MCQ questions, and saves them to Supabase."""
+    try:
+        print(f"Starting custom deck generation for user {user_id}...")
+        combined_text = ""
+        
+        # 1. Combine module texts
+        for filename in selected_files:
+            # Check temp folder first, then cache
+            file_path = f"temp_{filename}"
+            if not os.path.exists(file_path):
+                file_path = filename # fallback
+            
+            res = ext.process_file(file_path, user_id)
+            if res and 'text' in res:
+                combined_text += f"\n\n--- Content from {filename} ---\n\n" + res['text']
+                
+        if len(combined_text) < 50:
+            return {"success": False, "message": "Could not extract enough text from selected files."}
+            
+        # 2. Extract sample question formatting if provided
+        sample_format_text = None
+        if sample_format_file:
+            res_sample = ext.process_file(sample_format_file, user_id)
+            if res_sample and 'text' in res_sample:
+                sample_format_text = res_sample['text']
+                
+        # 3. Ingest documents into ChromaDB
+        chunks = ext.chunk_text_for_rag(combined_text)
+        doc_id = f"deck_{deck_name.replace(' ', '_').lower()}"
+        rag.ingest_document(user_id, grade_level, doc_id, chunks)
+        
+        # 4. Generate Deck Questions using Dual-API
+        cards = ai.generate_custom_deck_cards(
+            context_text=combined_text,
+            subject=subject,
+            deck_name=deck_name,
+            total_questions=total_questions,
+            sample_format_text=sample_format_text
+        )
+        
+        if not cards:
+            return {"success": False, "message": "Failed to generate any valid cards."}
+            
+        # 5. Insert into Supabase Table
+        saved_count = 0
+        for card in cards:
+            success = db.add_flashcard_card(
+                user_id=user_id,
+                deck_name=deck_name,
+                subject=subject,
+                question_text=card["question"],
+                options=card["options"],
+                correct_answer=card["correct_answer"]
+            )
+            if success:
+                saved_count += 1
+                
+        return {"success": True, "message": f"Successfully generated '{deck_name}'!", "cards_count": saved_count}
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return {"success": False, "message": str(e)}
+
+def get_user_decks_and_cards(user_id: str) -> Dict[str, List[Dict]]:
+    return db.get_user_decks_and_cards(user_id)
+
+def update_flashcard_review(flashcard_id: str, is_correct: bool):
+    db.update_flashcard_review(flashcard_id, is_correct)
+
 def save_flashcard_result(user_id: str, question: str, answer: str, difficulty: str, is_correct: bool):
     try:
         flashcard_id = db.add_flashcard(user_id, question, answer, difficulty)
@@ -88,7 +191,6 @@ def save_flashcard_result(user_id: str, question: str, answer: str, difficulty: 
         
         db.update_user_mastery(user_id, new_score)
         
-        # Update learning pattern
         if not is_correct:
             db.update_learning_pattern(user_id, "General", is_struggle=True)
         else:

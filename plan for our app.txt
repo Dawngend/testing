@@ -1,0 +1,314 @@
+### SYSTEM ARCHITECTURE & TEAM CONTEXT
+
+You are an expert Multi-Agent AI Development System assisting a 2nd-year Computer Science Data Science team (Runtime Terrors) competing in the ACM Techsprint hackathon. 
+
+
+
+We are adapting our existing working prototype—a stateful RAG (Retrieval-Augmented Generation) pipeline—into an "AI-Powered Study Companion for Filipino Learners." 
+
+
+
+Our baseline codebase uses the following architectural structure:
+
+1. Orchestrator (`app.py`): Handles UI state, file uploads, and session management using Streamlit.
+
+2. Extraction Layer (`extractor.py`): Custom extraction pipeline using `pdfplumber` and `pytesseract` with local caching.
+
+3. Intelligence Layer (`generator.py`): Prompt engineering pipeline interacting with Groq (Llama 3.3 70B) for structured JSON generation.
+
+4. Memory Layer (`rag_engine.py`): ChromaDB-backed persistent vector storage utilizing SentenceTransformers for context retrieval.
+
+5. Storage Layer (`database.py`): Relational tracking using SQLite for persistent data logging.
+
+
+
+### THE HACKATHON CHALLENGE (CRITICAL PRIORITY)
+
+We must modify this architecture to explicitly solve three core problems outlined in the ACM Techsprint brief:
+
+1. Explain concepts seamlessly in both Filipino (Tagalog) and English.
+
+2. Generate practice exercises that adapt dynamically to the student's learning/grade level.
+
+3. Optimize for mobile devices and low-bandwidth environments (handling connectivity constraints).
+
+
+
+### MY LOCAL DEVELOPMENT ENVIRONMENT
+
+I am coding in VS Code with the Continue Extension, utilizing a segmented multi-agent architecture. When you provide solutions, you must tell me exactly WHICH of my local agents I should select from my IDE dropdown to write the code:
+
+* **Mistral Large 3:** For standard execution, Streamlit UI tweaks, and basic functions.
+
+* **Kimi K2.7:** For folder design, logic separation, and multi-file mapping.
+
+* **Qwen 3.5 397B:** For intense data science algorithms, SQLite/ChromaDB queries, and nested JSON parsing.
+
+* **GLM 5.2:** For debugging and terminal exception patching.
+
+* **Gemma 4 12B:** For local offline scripting and token security.
+
+
+
+### MULTI-AGENT TEAM INITIALIZATION
+
+Act as 3 specialized internal sub-agents collaborating to outline the refactoring of our baseline architecture.
+
+
+
+1. 🧠 Agent Pedagogy (Prompt & LLM Engineer): Focuses on `generator.py`. Your job is to rewrite our Groq system prompts to enforce bilingual (Taglish) explanations and design a JSON schema that generates adaptive practice exercises (Easy, Medium, Hard) based on the user's grade level.
+
+2. ⚡ Agent Infrastructure (Low-Bandwidth Architect): Focuses on `app.py` and `extractor.py`. Your job is to optimize our Streamlit UI for mobile screens, and design a caching strategy/offline-first queue so the app doesn't crash if the Filipino student drops connection during an OCR upload.
+
+3. 💾 Agent Memory (Data & State Manager): Focuses on `rag_engine.py` and `database.py`. Your job is to update our SQLite database to track a student's "Grade Level" and "Mastery Score," and pass that state into ChromaDB so the retrieved context matches their specific learning needs.
+
+
+
+### YOUR FIRST TASK
+
+Acknowledge these roles and my local IDE environment. Then, provide a bulleted "Hackathon Execution Plan" detailing exactly which lines of code or functions in our 5 baseline files need to be modified first. Next to every bullet point, explicitly state which of my local VS Code agents (Mistral, Kimi, Qwen, etc.) I should assign the task to. Finally, provide the initial system prompt update for `generator.py` that forces the Llama model to output Taglish educational content.
+
+
+
+
+
+-----------------
+
+
+
+New chat
+
+Search chats
+
+Images
+
+Videos
+
+Library
+
+New notebook
+
+The Limitations of Direct Link Access
+
+Couldn't connect Reload
+
+Conversation with Gemini
+
+### SYSTEM ARCHITECTURE & TEAM CONTEXT
+
+You are an expert Multi-Agent AI Development System assisting a 2nd-year Computer Science Data Science team (Runtime Terrors) competing in the ACM Techsprint hackathon. 
+
+
+
+We are adapting our existing working prototype—a stateful RAG (Retrieval-Augmented Generation) pipeline—into an "AI-Powered Study Companion for Filipino Learners." 
+
+
+
+Our baseline codebase uses the following architectural structure:
+
+1. Orchestrator (`app.py`): Handles UI state, file uploads, and session management using Streamlit.
+
+2. Extraction Layer (`extractor.py`): Custom extraction pipeline using `pdfplumber` and `pytesseract` with local caching.
+
+3. Intelligence Layer (`generator.py`): Prompt engineering pipeline interacting with Groq (Llama 3.3 70B) for structured JSON generation.
+
+4. Memory Layer (`rag_engine.py`): ChromaDB-backed persistent vector storage utilizing SentenceTransformers for context retrieval.
+
+5. Storage Layer (`database.py`): Relational tracking using SQLite for persistent data logging.
+
+
+
+### THE HACKATHON CHALLENGE (CRITICAL PRIORITY)
+
+We must modify this architecture to explicitly solve three core problems outlined in the ACM Techsprint brief:
+
+1. Explain concepts seamlessly in both Filipino (Tagalog) and English.
+
+2. Generate practice exercises that adapt dynamically to the student's learning/grade level.
+
+3. Optimize for mobile devices and low-bandwidth environments (handling connectivity constraints).
+
+
+
+### MY LOCAL DEVELOPMENT ENVIRONMENT
+
+I am coding in VS Code with the Continue Extension, utilizing a segmented multi-agent architecture. When you provide solutions, you must tell me exactly WHICH of my local agents I should select from my IDE dropdown to write the code:
+
+* **Mistral Large 3:** For standard execution, Streamlit UI tweaks, and basic functions.
+
+* **Kimi K2.7:** For folder design, logic separation, and multi-file mapping.
+
+* **Qwen 3.5 397B:** For intense data science algorithms, SQLite/ChromaDB queries, and nested JSON parsing.
+
+* **GLM 5.2:** For debugging and terminal exception patching.
+
+* **Gemma 4 12B:** For local offline scripting and token security.
+
+
+
+### MULTI-AGENT TEAM INITIALIZATION
+
+Act as 3 specialized internal sub-agents collaborating to outline the refactoring of our baseline architecture.
+
+
+
+1. 🧠 Agent Pedagogy (Prompt & LLM Engineer): Focuses on `generator.py`. Your job is to rewrite our Groq system prompts to enforce bilingual (Taglish) explanations and design a JSON schema that generates adaptive practice exercises (Easy, Medium, Hard) based on the user's grade level.
+
+2. ⚡ Agent Infrastructure (Low-Bandwidth Architect): Focuses on `app.py` and `extractor.py`. Your job is to optimize our Streamlit UI for mobile screens, and design a caching strategy/offline-first queue so the app doesn't crash if the Filipino student drops connection during an OCR upload.
+
+3. 💾 Agent Memory (Data & State Manager): Focuses on `rag_engine.py` and `database.py`. Your job is to update our SQLite database to track a student's "Grade Level" and "Mastery Score," and pass that state into ChromaDB so the retrieved context matches their specific learning needs.
+
+
+
+### YOUR FIRST TASK
+
+Acknowledge these roles and my local IDE environment. Then, provide a bulleted "Hackathon Execution Plan" detailing exactly which lines of code or functions in our 5 baseline files need to be modified first. Next to every bullet point, explicitly state which of my local VS Code agents (Mistral, Kimi, Qwen, etc.) I should assign the task to. Finally, provide the initial system prompt update for `generator.py` that forces the Llama model to output Taglish educational content.
+
+
+
+--------------------------------------
+
+make a research and explanation first so that I can send and explain to my teammates. Also we are gonna do a separate and new repository and files for this. So we're gonna base from our personal project's code right? but I want a separate and better for this one because I'm aiming to win. I'm going to use gemini now instead of chatgpt
+
+Research & Explanation Briefing for the Team
+
+Alright, let's get Team CRYteria set up to win the ACM Techsprint. Transitioning from a baseline RAG pipeline to an adaptive, mobile-friendly study companion requires a shift from a "stateless document reader" to a "stateful, context-aware tutor." Here is the core strategy you can share with the team to explain why and how we are refactoring the codebase:
+
+1. Solving the Bilingual (Taglish) Requirement Language models often default to either formal, rigid English or archaic, textbook Tagalog ("malalim na Tagalog"). To effectively tutor Filipino students, we need to enforce a conversational "Taglish" tone—the natural way students actually speak. We achieve this by moving away from generic prompt instructions and instead injecting a strict persona and formatting rules into the system prompt within generator.py, explicitly instructing the Llama 3.3 model on how to blend the languages without losing technical accuracy.
+
+2. Solving the Adaptive Practice Exercises A standard RAG just retrieves text. An Adaptive RAG tracks the user. We will update database.py (SQLite) to log a student's grade_level and an evolving mastery_score. When a user asks a question, rag_engine.py will pull this state and pass it as metadata to ChromaDB. This ensures the retrieved context matches their level. Then, generator.py will use Groq's structured JSON output capabilities to force the LLM to generate an array of exercises dynamically scaled to their current mastery.
+
+3. Solving Mobile Optimization & Low-Bandwidth Constraints Streamlit is great for rapid prototyping, but its default behavior is to re-run the entire script upon every interaction. On a spotty data connection, re-running a heavy pdfplumber or pytesseract extraction will crash the app or drain the user's load. We will implement aggressive caching (@st.cache_data and @st.cache_resource) in extractor.py and app.py. This means once a document is OCR'd, the result lives in the local device memory. We will also utilize Streamlit's layout containers to ensure the UI stacks vertically and scales fluidly for mobile screens.
+
+Hackathon Execution Plan: File-by-File Refactoring
+
+Here is your exact blueprint for assigning tasks to your local IDE multi-agent setup.
+
+database.py (Storage Layer)
+
+Task: Add grade_level (Integer) and mastery_score (Float, default 0.0) columns to the existing User/Session SQLite tables. Create an update_mastery() function that recalculates the score based on quiz results.
+
+Assign to: Qwen 3.5 397B (Best for robust SQL schema modifications and relational logic).
+
+rag_engine.py (Memory Layer)
+
+Task: Modify the ChromaDB query function to accept grade_level as a metadata filter (where={"grade": user_grade}). Update the embedding ingestion function to tag all new document chunks with this metadata.
+
+Assign to: Qwen 3.5 397B (Best for vector database manipulation and semantic search algorithms).
+
+extractor.py (Extraction Layer)
+
+Task: Wrap the primary pdfplumber and pytesseract extraction functions with @st.cache_data(persist="disk"). Implement a try-except block that saves a local .txt backup of the OCR output so the app can fallback to local storage if the connection drops during processing.
+
+Assign to: Gemma 4 12B (Handles local offline scripting and caching logic) and use GLM 5.2 if you hit terminal exceptions during the OCR fallback testing.
+
+app.py (Orchestrator)
+
+Task: Restructure the UI grid using st.columns with use_container_width=True to force mobile responsiveness. Implement Streamlit session state (st.session_state) to hold the user's mastery_score locally so the UI doesn't need to ping SQLite on every single button click.
+
+Assign to: Kimi K2.7 (To map the new state logic across the imports) and Mistral Large 3 (To execute the specific Streamlit UI component tweaks).
+
+generator.py (Intelligence Layer)
+
+Task: Implement the Groq API call utilizing a Pydantic schema to force the output into a structured JSON containing the explanation and the adaptive Easy/Medium/Hard questions. Update the system prompt.
+
+Assign to: Qwen 3.5 397B (To handle the nested JSON parsing and Pydantic schema validation).
+
+
+
+------------------
+
+To win this hackathon, we need to take our existing RAG pipeline and turn it into a true, stateful AI Tutor. I’ve mapped out a new architecture that directly attacks the three core problems in the ACM Techsprint brief.
+
+We are going to set up a completely new, separate repository for this. We'll use our personal project code as the baseline, but branching into a fresh repo ensures we don't break our working prototype and allows us to aggressively optimize specifically for the hackathon requirements.
+
+Here is the breakdown of how we are upgrading our system:
+
+1. The Bilingual Problem: Authentic "Taglish"
+
+Standard LLMs sound too robotic in English or too archaic in pure Tagalog. To fix this, we are upgrading the Intelligence Layer (generator.py). We will use strict prompt engineering and JSON schemas to force the Llama model into a specific persona ("Tropa") that explains technical concepts in English but uses conversational Tagalog for analogies, transitions, and encouragement.
+
+2. The Adaptive Learning Problem: Tracking Mastery
+
+A standard RAG just reads documents; an Adaptive RAG tracks the user. We are upgrading our Storage and Memory Layers (database.py and rag_engine.py).
+
+We will use SQLite to log the user's Grade Level and an evolving "Mastery Score."
+
+When a student asks a question, we pass that score into ChromaDB as metadata.
+
+The LLM then generates dynamically scaled practice exercises (Easy, Medium, Hard) depending on whether the student is struggling or excelling.
+
+3. The Connectivity Problem: Offline-First & Mobile
+
+The app cannot crash if a student’s data connection drops while uploading a module. We are upgrading our Orchestrator and Extraction Layers (app.py and extractor.py).
+
+We will implement heavy data caching (@st.cache_data) so that once a PDF is OCR’d by pdfplumber or pytesseract, it stays in local memory.
+
+We will write a fallback script that saves extracted text locally. If the connection fails, the app reads from the local disk instead of hanging.
+
+The Streamlit UI will be forced into a responsive, single-column vertical layout to ensure it looks like a native mobile app.
+
+The Development Workflow: I have a multi-agent AI workspace set up locally (running specialized models for prompt engineering, SQL schema logic, and UI tweaks) so I can crank out the foundational refactoring for these five files rapidly.
+
+
+
+-------------
+
+_------------
+
+now this is what our team has talked about:
+
+Project case - AI powered study companion for filipino learners.
+
+Output is website
+
+Log in Signup (need miilti acc)
+
+After every prompt, ask if reflash used cards or generate new set of cards
+
+Add "view saved files"
+
+On "Create new reviewer", add an option to upload sample questions for the llm to copy its format
+
+Add a processed multi-AI driven response (use 2 existing ai chatbots, (use the ones in our configuration)
+
+also I want it to be like the dzuka agri hackaton project that we previously did which has multi agent systems working together
+
+
+
+--------------
+
+basically everything above is what we've planned with gemini and my team into creating our hackaton project. Tell me if I have to clone the all in one reviewer repository into this folder so that you can check it
+
+-----------------
+final plan of me and my team:
+Project case - AI powered study companion for filipino learners.
+Output is website
+
+Log in Signup (need miilti acc)
+- Users will be asked to Log-in or Sign-up upon openning the web.
+- Users that choose to log in will have their credentials validated through cloud hosting of the web
+- Users that choose to sign-up will be asked to provide necessary informations such as; email, username, password/along with password confirmation. After providing necessary credentials, their informations will be forwarded and saved to the cloud hosting storage of the website.
+
+After every prompt, ask if reflash used cards or generate new set of cards
+- After each flashcard set are finished, users will be asked if they would like to retry.
+- Users will be given a choice if they will retry with the "already generated" flashcards of question or will they retry on a new set of flashcard questions.
+- If the user chooses to retry with the already generated flashcard questions, they will only be given that already generated questions.
+- If the user chooses to retry with a new set of flashcard questions;  The API2 will run along the existing API1 that is first used to generate the question. 
+- API1 = AI machine tool used to generate questions first, API2 = AI model that make use of existing AI models/chatbots. The process will move as stated: API1 will generate the first set of questions, API2 will then run and double check the contents of the questions generated by API1 if it follows the preference of the user.
+
+
+Add "view saved files"
+- Files uploaded on the "create new reviewer" tab will be saved on the web cache
+- Files are only accessible and viewable for 4 days after the file has been succesfully uploaded.
+- Saved files will be shown and accessed through a different page screen. 
+
+On "Create new reviewer", add an option to upload sample questions for the llm to copy its format
+- The API2 will run during generation of the reviewer to "follow" the format requested by the user.
+- The API2 will run along the existing API1 that is first used to generate the question. 
+- API1 = AI machine tool used to generate questions first, API2 = AI model that make use of existing AI models/chatbots
+-The process will move as stated: API1 will generate the first set of questions, API2 will then run and double check the contents of the questions generated by API1 if it follows the preference of the user.
+
+Add a processed multi-AI driven response(This will be used on the study dashboard page. A unique api will be used that will forward user input to existing AI chatbot models.)
+- Its function are to adjust, recommend, read, edit, and research online in context of the file being used on the study dashboard.
+- API will also serve as a reviewer companion should the user have any questions in regards to the module contents. If needed, the AI model will search online for a more credible response to give the user.
