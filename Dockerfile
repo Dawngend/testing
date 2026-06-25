@@ -1,9 +1,12 @@
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies and compiler tools for building native libraries (e.g. ChromaDB)
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     libgl1-mesa-glx \
+    build-essential \
+    python3-dev \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
