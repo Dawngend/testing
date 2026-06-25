@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 from supabase import create_client
 from datetime import datetime
 from typing import Optional, Dict, List
+
+# Load environment variables
+load_dotenv(override=True)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")

@@ -6,13 +6,13 @@ from dotenv import load_dotenv
 from typing import Dict, Any
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # --- Configuration ---
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY")
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "qwen/qwen3.5-397b-a17b"
+NVIDIA_MODEL = "qwen/qwen3.5-122b-a10b"
 
 # Initialize Clients
 client_groq = None
@@ -118,7 +118,8 @@ def generate_adaptive_content(
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=1024
             )
             qwen_data = json.loads(response.choices[0].message.content)
         except Exception as e:

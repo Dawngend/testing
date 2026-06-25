@@ -8,7 +8,7 @@ print("🚀 Starting Tropa App...")
 
 # 2. FORCE LOAD ENV
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
 # 3. TRY IMPORTING BACKEND WITH ERROR CATCHING
 try:

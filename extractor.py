@@ -1,5 +1,6 @@
 import os
 import io
+import logging
 import hashlib
 import pdfplumber
 import pytesseract
@@ -7,6 +8,9 @@ import streamlit as st
 from PIL import Image
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
+
+# Suppress verbose pdfminer FontBBox warnings
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 # Tesseract executable path for Windows
 #pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'

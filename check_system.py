@@ -3,7 +3,7 @@ import sys
 from dotenv import load_dotenv
 
 # Load environment variables first
-load_dotenv()
+load_dotenv(override=True)
 
 print("🏥 RUNTIME TERRORS: SYSTEM HEALTH CHECK")
 print("=" * 40)
