@@ -226,6 +226,10 @@ def dashboard():
             deck_names = list(decks_and_cards.keys())
             selected_deck = st.selectbox("Select a Study Reviewer:", deck_names)
             
+            # Display the subject name
+            deck_subject = decks_and_cards[selected_deck][0].get("subject", "General")
+            st.markdown(f"📖 **Subject Category**: `{deck_subject}`")
+            
             if st.button("Start Quiz Session 🚀", type="primary"):
                 deck_cards = decks_and_cards[selected_deck]
                 random.shuffle(deck_cards)
@@ -249,6 +253,9 @@ def dashboard():
             progress_value = st.session_state.current_index / total_cards
             st.progress(progress_value)
             st.write(f"Question {st.session_state.current_index + 1} of {total_cards}")
+            
+            # Display the subject
+            st.markdown(f"📖 **Subject**: `{st.session_state.active_deck_subject}`")
             
             # Question Card
             st.markdown(f"""
@@ -274,13 +281,21 @@ def dashboard():
                                 if option == correct:
                                     st.session_state.answered_correctly = True
                                     # Update database spaced repetition log
-                                    backend.update_flashcard_review(current_card["id"], is_correct=True)
+                                    backend.update_flashcard_review(st.session_state.user_id, current_card["id"], is_correct=True)
+                                    # Update local state for immediate feedback
+                                    if st.session_state.profile:
+                                        cur = st.session_state.profile.get('mastery_score', 0.0) or 0.0
+                                        st.session_state.profile['mastery_score'] = min(1.0, cur + 0.05)
                                     st.rerun()
                                 else:
                                     st.session_state.wrong_attempts_on_card.add(option)
                                     if current_card not in st.session_state.failed_cards_pool:
                                         st.session_state.failed_cards_pool.append(current_card)
-                                        backend.update_flashcard_review(current_card["id"], is_correct=False)
+                                        backend.update_flashcard_review(st.session_state.user_id, current_card["id"], is_correct=False)
+                                        # Update local state for immediate feedback
+                                        if st.session_state.profile:
+                                            cur = st.session_state.profile.get('mastery_score', 0.0) or 0.0
+                                            st.session_state.profile['mastery_score'] = max(0.0, cur - 0.02)
                                     st.rerun()
             else:
                 # Correct choice selected review screen
@@ -312,19 +327,52 @@ def dashboard():
                 </div>
             """, unsafe_allow_html=True)
             
-            col1, col2 = st.columns(2)
+            # Show missed count
+            missed_count = len(st.session_state.failed_cards_pool)
+            if missed_count > 0:
+                st.warning(f"⚠️ You missed {missed_count} question(s) on the first attempt in this session.")
+            else:
+                st.success("🎉 Perfect score on first attempt! You aced this deck!")
+            
+            col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("🔄 Reflash Same Questions"):
-                    # Reset session
+                if st.button("🔄 Reflash Entire Deck"):
+                    deck_cards = decks_and_cards.get(st.session_state.active_deck_name, [])
+                    if deck_cards:
+                        random.shuffle(deck_cards)
+                        st.session_state.cards_queue = deck_cards
                     st.session_state.current_index = 0
                     st.session_state.wrong_attempts_on_card.clear()
+                    st.session_state.failed_cards_pool = []
                     st.session_state.answered_correctly = False
                     st.rerun()
             with col2:
-                if st.button("✨ Generate New Set of Questions"):
-                    st.info("Directing you to the Create Reviewer workspace...")
-                    st.session_state.quiz_started = False
+                if st.button("❌ Reflash Missed Questions", disabled=(missed_count == 0)):
+                    st.session_state.cards_queue = list(st.session_state.failed_cards_pool)
+                    random.shuffle(st.session_state.cards_queue)
+                    st.session_state.current_index = 0
+                    st.session_state.wrong_attempts_on_card.clear()
+                    st.session_state.failed_cards_pool = []
+                    st.session_state.answered_correctly = False
                     st.rerun()
+            with col3:
+                if st.button("🧠 Generate Focus Set", disabled=(missed_count == 0)):
+                    with st.spinner("Generating new questions based on your mistakes..."):
+                        g_lang = st.session_state.get("global_lang_pref", "Taglish")
+                        res = backend.generate_focus_deck(
+                            user_id=st.session_state.user_id,
+                            deck_name=st.session_state.active_deck_name,
+                            subject=st.session_state.active_deck_subject,
+                            failed_questions=st.session_state.failed_cards_pool,
+                            total_questions=max(3, len(st.session_state.failed_cards_pool)),
+                            language=g_lang
+                        )
+                        if res and res.get("success"):
+                            st.success(f"Successfully created focus deck: '{res['deck_name']}'!")
+                            st.session_state.quiz_started = False
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to generate focus set: {res.get('message', 'AI error')}")
 
     # -------------------------------------------------------------------------
     # MODE 2: CREATE REVIEWER

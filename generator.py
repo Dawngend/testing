@@ -334,6 +334,107 @@ def generate_custom_deck_cards(
     # Trim to exactly requested count
     return all_final_cards[:total_questions]
 
+def generate_focus_deck_cards(
+    context_text: str,
+    failed_info: str,
+    subject: str,
+    deck_name: str,
+    total_questions: int,
+    language: str = "Taglish"
+) -> list:
+    """
+    Generates new multiple-choice questions focusing specifically on concepts from failed questions.
+    """
+    # Setup language prompt instructions
+    lang_instruction = ""
+    if language == "English":
+        lang_instruction = "You MUST write all questions, options, and explanations in pure, clear English."
+    elif language == "Tagalog":
+        lang_instruction = "You MUST write all questions, options, and explanations in pure Tagalog (Filipino)."
+    else: # Taglish
+        lang_instruction = "You MUST write all questions, options, and explanations in conversational Taglish (a natural mix of Tagalog and English)."
+
+    prompt = f"""
+    You are "Tropa", an elite academic coach.
+    The student struggled with the following questions in a previous quiz:
+    
+    {failed_info}
+    
+    TASK:
+    Generate exactly {total_questions} NEW, DIFFERENT multiple-choice questions that target these exact weak spots or concepts. 
+    Use the provided Source Context for background facts and concepts.
+    
+    Source Context:
+    {context_text[:5000]}
+    
+    CRITICAL REQUIREMENTS:
+    1. Do NOT repeat the failed questions verbatim. Generate fresh scenarios/situations.
+    2. {lang_instruction}
+    3. Output a strictly formatted JSON object with a single key 'questions' containing an array of objects.
+    4. Each object must have:
+       "question": "The new scenario/question",
+       "options": ["Choice A", "Choice B", "Choice C", "Choice D"],
+       "correct_answer": "The correct option text exactly matching one of the options"
+    """
+    
+    # We call Groq Llama to generate, then Qwen to verify
+    llama_questions = []
+    if client_groq:
+        try:
+            response = client_groq.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are a bilingual academic professor. Output MUST be valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.7
+            )
+            data = clean_and_parse_json(response.choices[0].message.content)
+            llama_questions = data.get("questions", [])
+        except Exception as e:
+            print(f"❌ Groq Focus Generation failed: {e}")
+            
+    all_final_cards = []
+    if client_qwen and llama_questions:
+        prompt_api2 = f"""
+        You are an expert academic tutor. Review the following generated multiple-choice questions for accuracy.
+        Ensure they have exactly 4 choices in 'options', and 'correct_answer' matches one of the options.
+        {lang_instruction}
+        Output MUST be valid JSON with a single key 'questions'.
+        
+        Raw Questions to Review:
+        {json.dumps(llama_questions, indent=2)}
+        """
+        try:
+            response = client_qwen.chat.completions.create(
+                model=NVIDIA_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a strict JSON verification engine. Output MUST be valid JSON."},
+                    {"role": "user", "content": prompt_api2}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                max_tokens=2048
+            )
+            data = clean_and_parse_json(response.choices[0].message.content)
+            verified_questions = data.get("questions", [])
+            for card in verified_questions:
+                if all(k in card for k in ("question", "options", "correct_answer")) and len(card["options"]) == 4:
+                    if card["correct_answer"] in card["options"]:
+                        all_final_cards.append(card)
+        except Exception as e:
+            print(f"❌ Qwen Focus Verification failed: {e}")
+            for card in llama_questions:
+                if all(k in card for k in ("question", "options", "correct_answer")) and len(card["options"]) == 4:
+                    all_final_cards.append(card)
+    else:
+        for card in llama_questions:
+            if all(k in card for k in ("question", "options", "correct_answer")) and len(card["options"]) == 4:
+                all_final_cards.append(card)
+                
+    return all_final_cards[:total_questions]
+
 if __name__ == "__main__":
     print("🧪 Testing Generator...")
     result = generate_adaptive_content("Variables", 10, 0.5, "Variables store data.")

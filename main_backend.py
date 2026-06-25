@@ -204,8 +204,76 @@ def generate_reviewer_deck(
 def get_user_decks_and_cards(user_id: str) -> Dict[str, List[Dict]]:
     return db.get_user_decks_and_cards(user_id)
 
-def update_flashcard_review(flashcard_id: str, is_correct: bool):
+def update_flashcard_review(user_id: str, flashcard_id: str, is_correct: bool):
     db.update_flashcard_review(flashcard_id, is_correct)
+    try:
+        profile = db.get_user_profile(user_id)
+        if profile:
+            current_score = profile.get('mastery_score', 0.5)
+            # Add 5% for correct, subtract 2% for wrong
+            new_score = min(1.0, max(0.0, current_score + (0.05 if is_correct else -0.02)))
+            db.update_user_mastery(user_id, new_score)
+    except Exception as e:
+        print(f"Error updating mastery in review: {e}")
+
+def generate_focus_deck(
+    user_id: str,
+    deck_name: str,
+    subject: str,
+    failed_questions: List[Dict],
+    total_questions: int,
+    language: str = "Taglish"
+) -> Dict[str, Any]:
+    """Generates a specialized deck focused on topics the user missed, retrieving relevant context."""
+    try:
+        print(f"Starting focused deck generation for user {user_id}...")
+        
+        # 1. Construct a description of what the user got wrong
+        focus_prompt = "The user struggled with these questions. Generate new, different scenario-based questions testing the same underlying concepts:\n\n"
+        for i, card in enumerate(failed_questions):
+            opts_str = ", ".join(card['options']) if isinstance(card.get('options'), list) else ""
+            focus_prompt += f"Failed Question {i+1}: {card['question']}\nCorrect Answer: {card['correct_answer']}\nChoices: {opts_str}\n\n"
+            
+        # 2. Retrieve context from ChromaDB based on these failed questions
+        combined_context = ""
+        for card in failed_questions:
+            retrieved = rag.retrieve_context(user_id, 10, card['question'], n_results=1)
+            if retrieved:
+                combined_context += retrieved + "\n"
+                
+        # 3. Generate Deck Questions using generator.generate_focus_deck_cards
+        focus_deck_name = f"{deck_name} (Focus Dojo)"
+        cards = ai.generate_focus_deck_cards(
+            context_text=combined_context if combined_context else "Use general knowledge to test the concepts.",
+            failed_info=focus_prompt,
+            subject=subject,
+            deck_name=focus_deck_name,
+            total_questions=total_questions,
+            language=language
+        )
+        
+        if not cards:
+            return {"success": False, "message": "Failed to generate any focus cards."}
+            
+        # 4. Insert into Supabase Table
+        saved_count = 0
+        for card in cards:
+            success = db.add_flashcard_card(
+                user_id=user_id,
+                deck_name=focus_deck_name,
+                subject=subject,
+                question_text=card["question"],
+                options=card["options"],
+                correct_answer=card["correct_answer"]
+            )
+            if success:
+                saved_count += 1
+                
+        return {"success": True, "deck_name": focus_deck_name, "cards_count": saved_count}
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return {"success": False, "message": str(e)}
 
 def save_flashcard_result(user_id: str, question: str, answer: str, difficulty: str, is_correct: bool):
     try:
