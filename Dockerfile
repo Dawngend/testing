@@ -1,5 +1,8 @@
 FROM python:3.11
 
+# Force python stdout/stderr to be unbuffered so logs print in real-time
+ENV PYTHONUNBUFFERED=1
+
 # Install tesseract-ocr and libgl1 (graphics library for streamlit/pillow)
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
