@@ -3,6 +3,7 @@
 
 # LOCAL DATABASE & CACHE (Generated automatically, don't share)
 chroma_db/
+course_brain_db/
 extraction_cache/
 *.sqlite3
 *.db

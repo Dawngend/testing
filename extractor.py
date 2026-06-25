@@ -1,5 +1,6 @@
 import os
 import io
+import hashlib
 import pdfplumber
 import pytesseract
 import streamlit as st
@@ -102,3 +103,54 @@ def process_module_file_v2(file_path):
         return extract_text_from_pptx(file_path, cache_file)
     else:
         return "Unsupported file type. Please upload a PDF or PPTX."
+
+def process_file(file_path: str, user_id: str) -> dict:
+    """Processes a PDF/PPTX file, extracts text, and returns text and metadata with file hash."""
+    text = process_module_file_v2(file_path)
+    
+    # Calculate hash of file to use as file_hash/doc_id
+    sha256 = hashlib.sha256()
+    try:
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256.update(byte_block)
+        file_hash = sha256.hexdigest()
+    except Exception as e:
+        print(f"  [Warning] Failed to calculate hash for {file_path}: {e}")
+        # Fallback to hash of file_path if file read fails
+        file_hash = hashlib.sha256(file_path.encode()).hexdigest()
+        
+    return {
+        'text': text,
+        'metadata': {
+            'file_hash': file_hash,
+            'user_id': user_id
+        }
+    }
+
+def chunk_text_for_rag(text: str, chunk_size: int = 1000, overlap: int = 200) -> list:
+    """Split text into chunks of roughly chunk_size characters with some overlap."""
+    if not text:
+        return []
+        
+    chunks = []
+    start = 0
+    text_len = len(text)
+    
+    while start < text_len:
+        end = start + chunk_size
+        if end >= text_len:
+            chunks.append(text[start:])
+            break
+            
+        # Try to break at a space or newline to avoid cutting words
+        last_space = text.rfind(' ', start, end)
+        if last_space > start + (chunk_size - overlap):
+            end = last_space
+            
+        chunks.append(text[start:end])
+        start = end - overlap
+        if start < 0:
+            start = 0
+            
+    return chunks

@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+chroma_db
+course_brain_db
+extraction_cache
+uploads

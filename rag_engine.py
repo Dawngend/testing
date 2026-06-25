@@ -2,9 +2,8 @@ import os
 import chromadb
 from chromadb.utils import embedding_functions
 
-# Initialize a local persistent database folder relative to this file
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_DIR = os.path.join(BASE_DIR, "course_brain_db")
+# Initialize a local persistent database folder
+DB_DIR = os.getenv("CHROMA_DB_PATH", "course_brain_db")
 chroma_client = chromadb.PersistentClient(path=DB_DIR)
 
 # Use Chroma's default sentence-transformers model
@@ -56,6 +55,46 @@ def get_historical_context(current_chunk: str, subject: str, n_results: int = 2)
         for doc, meta in zip(documents, sources):
             source_name = meta.get("source", "Past Module")
             context_string += f"[{source_name}]: {doc[:500]}...\n\n"
+            
+        return context_string
+    except Exception as e:
+        print(f"  [Brain Warning] Vector search failed: {e}")
+        return ""
+
+def ingest_document(user_id: str, grade_level: int, doc_id: str, chunks: list[str]):
+    """Embeds and saves document chunks into ChromaDB."""
+    print(f"\n  [Brain] Ingesting {len(chunks)} chunks for user '{user_id}' and grade '{grade_level}'...")
+    
+    ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
+    metadatas = [{"user_id": user_id, "grade_level": grade_level, "doc_id": doc_id} for _ in chunks]
+    
+    try:
+        collection.upsert(
+            documents=chunks,
+            metadatas=metadatas,
+            ids=ids
+        )
+        print("  [Brain] Ingestion complete!")
+    except Exception as e:
+        print(f"  [Brain Error] Failed to save to ChromaDB: {e}")
+        raise e
+
+def retrieve_context(user_id: str, grade_level: int, query: str, n_results: int = 3) -> str:
+    """Searches past documents matching the user_id (and optionally grade_level)."""
+    try:
+        results = collection.query(
+            query_texts=[query],
+            n_results=n_results,
+            where={"user_id": user_id}
+        )
+        
+        documents = results.get("documents", [[]])[0]
+        if not documents:
+            return ""
+            
+        context_string = "\n\n--- PAST RELEVANT KNOWLEDGE (From Vector DB) ---\n"
+        for i, doc in enumerate(documents):
+            context_string += f"[Context {i+1}]: {doc[:500]}...\n\n"
             
         return context_string
     except Exception as e:
