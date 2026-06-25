@@ -1,93 +1,108 @@
 import os
-from supabase import create_client, Client
+from supabase import create_client
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, List
 
-# --- Configuration ---
-# These should be set in your .env file or environment variables
-SUPABASE_URL = os.getenv("SUPABASE_URL", "YOUR_SUPABASE_URL_HERE")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "YOUR_SUPABASE_KEY_HERE")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-# Initialize Supabase Client
 try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("✅ Supabase connected")
 except Exception as e:
-    print(f"⚠️ Supabase client initialization failed: {e}")
+    print(f"❌ Supabase error: {e}")
     supabase = None
 
-# --- Schema Setup Instructions (Run this in Supabase SQL Editor) ---
-"""
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT auth.uid(),
-    username TEXT UNIQUE NOT NULL,
-    grade_level INTEGER DEFAULT 1,
-    mastery_score REAL DEFAULT 0.0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+def sign_up(email: str, password: str, username: str, grade_level: int = 1):
+    if not supabase:
+        return None
+    try:
+        response = supabase.auth.sign_up({
+            "email": email,
+            "password": password,
+            "options": {"data": {"username": username, "grade_level": grade_level}}
+        })
+        return response.user
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return None
 
-CREATE TABLE documents (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    filename TEXT NOT NULL,
-    file_path TEXT NOT NULL, -- Supabase Storage path
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+def sign_in(email: str, password: str):
+    if not supabase:
+        return None
+    try:
+        response = supabase.auth.sign_in_with_password({"email": email, "password": password})
+        return response.user
+    except Exception as e:
+        print(f"Login error: {e}")
+        return None
 
-CREATE TABLE flashcards (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
-    difficulty TEXT DEFAULT 'Medium',
-    next_review_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    streak INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+def get_user_profile(user_id: str) -> Optional[Dict]:
+    if not supabase:
+        return None
+    try:
+        user_data = supabase.table("users").select("*").eq("id", user_id).execute().data
+        if not user_data:
+            return None
 
-CREATE TABLE practice_logs (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    flashcard_id UUID REFERENCES flashcards(id),
-    is_correct BOOLEAN,
-    time_spent_seconds INTEGER,
-    logged_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- Enable Row Level Security (RLS) so users only see their own data
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
-ALTER TABLE practice_logs ENABLE ROW LEVEL SECURITY;
-
--- Simple Policy: Users can only see/edit their own rows
-CREATE POLICY "Users can view own data" ON users FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can view own docs" ON documents FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view own cards" ON flashcards FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view own logs" ON practice_logs FOR SELECT USING (auth.uid() = user_id);
--- (Add INSERT/UPDATE policies similarly)
-"""
-
-# --- Backend Helper Functions ---
-
-def get_user_profile(user_id: str) -> Optional[Dict[str, Any]]:
-    """Fetches user grade level and mastery score."""
-    if not supabase: return None
-    response = supabase.table("users").select("*").eq("id", user_id).execute()
-    return response.data[0] if response.data else None
+        prefs = supabase.table("user_preferences").select("*").eq("user_id", user_id).execute().data
+        user_data[0]["preferences"] = prefs[0] if prefs else {}
+        return user_data[0]
+    except Exception as e:
+        print(f"Profile error: {e}")
+        return None
 
 def update_user_mastery(user_id: str, new_score: float):
-    """Updates the user's overall mastery score."""
-    if not supabase: return
-    supabase.table("users").update({"mastery_score": new_score}).eq("id", user_id).execute()
+    if supabase:
+        supabase.table("users").update({"mastery_score": new_score}).eq("id", user_id).execute()
 
-def update_user_grade(user_id: str, grade_level: int):
-    """Updates the user's grade level for adaptive filtering."""
-    if not supabase: return
-    supabase.table("users").update({"grade_level": grade_level}).eq("id", user_id).execute()
+def update_learning_pattern(user_id: str, topic: str, is_struggle: bool, preferred_format: Optional[str] = None):
+    if not supabase:
+        return
 
-def add_flashcard(user_id: str, question: str, answer: str, difficulty: str = "Medium") -> bool:
-    """Inserts a new flashcard generated by the AI."""
-    if not supabase: return False
+    current = get_user_profile(user_id)
+    if not current:
+        return
+
+    prefs = current.get("preferences", {})
+    struggles = set(prefs.get("struggle_areas", []))
+    strengths = set(prefs.get("strength_areas", []))
+
+    if is_struggle:
+        struggles.add(topic)
+        strengths.discard(topic)
+    else:
+        strengths.add(topic)
+        struggles.discard(topic)
+
+    update_data = {
+        "struggle_areas": list(struggles),
+        "strength_areas": list(strengths),
+        "interaction_count": (prefs.get("interaction_count") or 0) + 1,
+        "last_active": datetime.utcnow().isoformat()
+    }
+
+    if preferred_format:
+        update_data["preferred_format"] = preferred_format
+
+    supabase.table("user_preferences").update(update_data).eq("id", user_id).execute()
+
+def save_document_metadata(user_id: str, filename: str, storage_path: str):
+    if supabase:
+        supabase.table("documents").insert({
+            "user_id": user_id,
+            "filename": filename,
+            "file_path": storage_path
+        }).execute()
+
+def get_user_documents(user_id: str) -> List[Dict]:
+    if not supabase:
+        return []
+    return supabase.table("documents").select("*").eq("user_id", user_id).execute().data or []
+
+def add_flashcard(user_id: str, question: str, answer: str, difficulty: str = "Medium") -> Optional[str]:
+    if not supabase:
+        return None
     data = {
         "user_id": user_id,
         "question": question,
@@ -95,84 +110,15 @@ def add_flashcard(user_id: str, question: str, answer: str, difficulty: str = "M
         "difficulty": difficulty,
         "next_review_date": datetime.utcnow().isoformat()
     }
-    response = supabase.table("flashcards").insert(data).execute()
-    return response.data is not None
+    result = supabase.table("flashcards").insert(data).execute()
+    return result.data[0]["id"] if result.data else None
 
-def get_due_flashcards(user_id: str) -> List[Dict[str, Any]]:
-    """Gets flashcards due for review (Spaced Repetition)."""
-    if not supabase: return []
+def get_due_flashcards(user_id: str) -> List[Dict]:
+    if not supabase:
+        return []
     now = datetime.utcnow().isoformat()
-    response = supabase.table("flashcards")\
-        .select("*")\
-        .eq("user_id", user_id)\
-        .lte("next_review_date", now)\
-        .execute()
-    return response.data if response.data else []
-
-def log_practice_attempt(user_id: str, flashcard_id: str, is_correct: bool):
-    """Logs a practice attempt for analytics and mastery calculation."""
-    if not supabase: return
-    data = {
-        "user_id": user_id,
-        "flashcard_id": flashcard_id,
-        "is_correct": is_correct,
-        "time_spent_seconds": 0 # Can be passed from frontend
-    }
-    supabase.table("practice_logs").insert(data).execute()
-    
-    # Optional: Simple mastery update logic here or via Database Function
-    # For now, we just log it. Frontend or a separate job can recalculate mastery.
-
-def save_document_metadata(user_id: str, filename: str, storage_path: str):
-    """Records a uploaded file in the DB."""
-    if not supabase: return
-    data = {
-        "user_id": user_id,
-        "filename": filename,
-        "file_path": storage_path
-    }
-    supabase.table("documents").insert(data).execute()
-
-def get_user_documents(user_id: str) -> List[Dict[str, Any]]:
-    """Lists all files uploaded by the user."""
-    if not supabase: return []
-    response = supabase.table("documents")\
-        .select("*")\
-        .eq("user_id", user_id)\
-        .execute()
-    return response.data if response.data else []
-
-# --- Authentication Helpers (Wrapping Supabase Auth) ---
-
-def sign_up(email: str, password: str, username: str, grade_level: int = 1):
-    """Creates a new user in Supabase Auth and adds profile to DB."""
-    if not supabase: return None
-    
-    # 1. Create Auth User
-    auth_response = supabase.auth.sign_up({"email": email, "password": password})
-    
-    if auth_response.user:
-        user_id = auth_response.user.id
-        # 2. Create Profile in 'users' table
-        supabase.table("users").insert({
-            "id": user_id,
-            "username": username,
-            "grade_level": grade_level,
-            "mastery_score": 0.0
-        }).execute()
-        return auth_response.user
-    return None
-
-def sign_in(email: str, password: str):
-    """Logs in user."""
-    if not supabase: return None
-    response = supabase.auth.sign_in_with_password({"email": email, "password": password})
-    return response.user if response.user else None
+    result = supabase.table("flashcards").select("*").eq("user_id", user_id).lte("next_review_date", now).execute()
+    return result.data or []
 
 if __name__ == "__main__":
-    print("🔌 Testing Supabase Connection...")
-    if supabase:
-        print("✅ Supabase Client Connected Successfully!")
-        print("📝 Remember to run the SQL schema in your Supabase Dashboard.")
-    else:
-        print("❌ Connection Failed. Check your .env variables.")
+    print("Database module ready")

@@ -1,0 +1,19 @@
+# SECRETS (Critical)
+.env
+
+# LOCAL DATABASE & CACHE (Generated automatically, don't share)
+chroma_db/
+extraction_cache/
+*.sqlite3
+*.db
+
+# TEMPORARY FILES (Created during upload)
+temp_*
+
+# PYTHON CACHE (Junk files created when running)
+__pycache__/
+*.pyc
+
+# VIRTUAL ENVIRONMENT (Your local python installation)
+venv/
+.venv/
