@@ -1,0 +1,25 @@
+# --- Database & Auth ---
+supabase
+python-dotenv
+
+# --- AI & LLM Clients ---
+groq
+openai
+
+# --- RAG (Retrieval Augmented Generation) ---
+chromadb
+sentence-transformers
+
+# --- File Extraction & OCR ---
+pypdf
+pdfplumber
+pytesseract
+Pillow
+
+# --- UI (For Frontend Teammate) ---
+streamlit
+
+# --- Utilities ---
+requests
+python-pptx
+
